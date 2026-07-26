@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { generateReview } from "./generate";
+import { getReviews } from "./reviews";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -18,6 +19,10 @@ app.get("/api/health", async (context) => {
     .first<{ count: number }>();
 
   return context.json({ status: "ok", writingSamples: result?.count });
+});
+
+app.get("/api/reviews", () => {
+  return getReviews();
 });
 
 app.all("/api/*", (context) => context.json({ error: "APIが見つかりません。" }, 404));
