@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 type Review = {
   name: string;
@@ -51,9 +52,15 @@ export function ReviewListPage() {
   return (
     <main className="min-h-screen bg-base-200 px-4 py-10" data-theme="cupcake">
       <div className="mx-auto max-w-3xl">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold">口コミ一覧</h1>
-          <p className="mt-2 opacity-70">{reviews.length}件の口コミ</p>
+        <header className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold">口コミ一覧</h1>
+            <p className="mt-2 opacity-70">{reviews.length}件の口コミ</p>
+          </div>
+
+          <Link className="btn btn-primary" to="/reviews/new">
+            口コミを作成
+          </Link>
         </header>
 
         <ul className="space-y-4">

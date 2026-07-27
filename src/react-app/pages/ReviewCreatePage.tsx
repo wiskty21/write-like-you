@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
+import { Link } from "react-router";
 
 type GeneratedReview = { title: string; body: string; notice: string };
 type Status = { message: string; isError?: boolean };
@@ -51,6 +52,9 @@ export function ReviewCreatePage() {
           <p className="text-sm font-bold tracking-widest text-primary">PERSONAL REVIEW WRITER</p>
           <h1 className="mt-2 text-4xl font-bold">口コミにはたらしさを。</h1>
           <p className="mt-3 opacity-70">今回の食事について入力すると、過去の口コミの文体を参考にタイトルと本文を生成します。</p>
+          <Link className="link text-sm" to="/reviews">
+            口コミ一覧へ戻る
+          </Link>
         </header>
 
         <section className="card bg-base-100 shadow-sm" aria-labelledby="form-title">
