@@ -3,6 +3,7 @@ import { chromium, type Locator, type Page } from "playwright";
 
 const START_URL = "https://tabelog.com/rvwr/wi2kty/reviewed_restaurants/list";
 const OUTPUT_PATH = new URL("../data/reviews.json", import.meta.url);
+const META_OUTPUT_PATH = new URL("../data/reviews-meta.json", import.meta.url);
 const WAIT_MS = 1_000;
 
 type ReviewLink = { name: string; url: string; detailUrl: string };
@@ -116,7 +117,14 @@ async function main() {
       throw new Error("全件でいいね数が見つかりませんでした。DOM構造を確認してください。");
     }
 
-    await writeFile(OUTPUT_PATH, `${JSON.stringify(reviews, null, 2)}\n`);
+    const lastUpdatedAt = new Date().toISOString();
+    await Promise.all([
+      writeFile(OUTPUT_PATH, `${JSON.stringify(reviews, null, 2)}\n`),
+      writeFile(
+        META_OUTPUT_PATH,
+        `${JSON.stringify({ lastUpdatedAt }, null, 2)}\n`,
+      ),
+    ]);
     console.log(`${reviews.length}件を data/reviews.json に保存しました。`);
   } finally {
     await browser.close();
