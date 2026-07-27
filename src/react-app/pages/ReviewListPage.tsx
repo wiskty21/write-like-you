@@ -48,5 +48,53 @@ export function ReviewListPage() {
     return <p>読み込み中...</p>;
   }
 
-  return <p>{reviews.length}件の口コミ</p>;
+  return (
+    <main className="min-h-screen bg-base-200 px-4 py-10" data-theme="cupcake">
+      <div className="mx-auto max-w-3xl">
+        <header className="mb-8">
+          <h1 className="text-4xl font-bold">口コミ一覧</h1>
+          <p className="mt-2 opacity-70">{reviews.length}件の口コミ</p>
+        </header>
+
+        <ul className="space-y-4">
+          {reviews.map((review) => (
+            <li key={review.url}>
+              <article className="card bg-base-100 shadow-sm">
+                <div className="card-body">
+                  <div className="flex items-start justify-between gap-4">
+                    <a
+                      className="link text-xl font-bold"
+                      href={review.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {review.name}
+                    </a>
+
+                    <span className="badge badge-primary">
+                      {review.rating.toFixed(1)}
+                    </span>
+                  </div>
+
+                  {review.title && (
+                    <h2 className="font-bold">{review.title}</h2>
+                  )}
+
+                  {review.body && (
+                    <p className="whitespace-pre-wrap leading-relaxed">
+                      {review.body}
+                    </p>
+                  )}
+
+                  <p className="text-sm opacity-60">
+                    いいね {review.likeCount}
+                  </p>
+                </div>
+              </article>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </main>
+  );
 }
