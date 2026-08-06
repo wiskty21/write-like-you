@@ -7,3 +7,5 @@ dist/
 .env
 .env.*
 !.env.example
+data/reviews-meta.json
+data/reviews.json
