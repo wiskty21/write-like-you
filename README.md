@@ -88,11 +88,19 @@ npm run dev
 
 ## Browser Runのローカル検証
 
-開発サーバーを起動した状態で、CloudflareのScheduled Handlerを呼び出します。
+Browser Runを含むScheduled Handlerの検証には、Wranglerの開発サーバーを使用します。
 
 ```bash
-curl "http://localhost:5173/cdn-cgi/handler/scheduled?format=json"
+npm run dev:worker
 ```
+
+別のターミナルからScheduled Handlerを呼び出します。
+
+```bash
+curl "http://localhost:8787/cdn-cgi/handler/scheduled"
+```
+
+`npm run dev`で起動するVite開発サーバーは、通常の画面・API開発に使用します。リモートのBrowser Runを伴うCron検証には使用しません。
 
 この処理は次の順序で動作します。
 

@@ -25,6 +25,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:worker": "npm run build && wrangler dev --port 8787",
     "build": "npm run types:check && npm run typecheck && vite build",
     "preview": "npm run build && vite preview",
     "deploy": "npm run build && wrangler deploy",
