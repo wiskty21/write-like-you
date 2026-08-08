@@ -1,11 +1,5 @@
-// src/worker/reviews.ts
+import { D1ReviewRepository } from "./d1-review-repository";
 
-import reviews from "../../data/reviews.json";
-import reviewsMeta from "../../data/reviews-meta.json";
-
-export function getReviews() {
-  return Response.json({
-    reviews,
-    lastUpdatedAt: reviewsMeta.lastUpdatedAt,
-  });
+export async function getReviews(db: D1Database) {
+  return Response.json(await new D1ReviewRepository(db).getAll());
 }

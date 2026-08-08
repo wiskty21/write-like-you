@@ -1,5 +1,5 @@
-import reviews from "../../data/reviews.json";
 import { runReviewModel, type ReviewModelInput } from "./ai";
+import { D1ReviewRepository } from "./d1-review-repository";
 
 type GenerateInput = {
   restaurantName: string;
@@ -7,10 +7,6 @@ type GenerateInput = {
   rating: number;
   personalEpisode: string;
 };
-
-const styleSamples = reviews
-  .filter((review): review is typeof review & { body: string } => review.body !== null)
-  .map(({ title, body }) => ({ title, body }));
 
 const outputSchema = {
   type: "object",
@@ -44,7 +40,10 @@ function parseInput(value: unknown): GenerateInput {
   };
 }
 
-function buildModelInput(input: GenerateInput) {
+function buildModelInput(
+  input: GenerateInput,
+  styleSamples: { title: string | null; body: string }[],
+) {
   return {
     messages: [
       {
@@ -89,7 +88,10 @@ export async function generateReview(request: Request, env: CloudflareBindings) 
     return Response.json({ error: message }, { status: 400 });
   }
 
-  const generated = parseGeneratedReview(await runReviewModel(env, buildModelInput(input)));
+  const styleSamples = await new D1ReviewRepository(env.DB).getStyleSamples();
+  const generated = parseGeneratedReview(
+    await runReviewModel(env, buildModelInput(input, styleSamples)),
+  );
   return Response.json({
     ...generated,
     notice: "入力内容と事実関係を確認してから投稿してください。",

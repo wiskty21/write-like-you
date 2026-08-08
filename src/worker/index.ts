@@ -21,8 +21,8 @@ app.get("/api/health", async (context) => {
   return context.json({ status: "ok", writingSamples: result?.count });
 });
 
-app.get("/api/reviews", () => {
-  return getReviews();
+app.get("/api/reviews", (context) => {
+  return getReviews(context.env.DB);
 });
 
 app.all("/api/*", (context) => context.json({ error: "APIが見つかりません。" }, 404));
