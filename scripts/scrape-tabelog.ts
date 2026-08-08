@@ -10,11 +10,22 @@ type ReviewLink = { name: string; url: string; detailUrl: string };
 type Review = Omit<ReviewLink, "detailUrl"> & {
   title: string | null;
   body: string | null;
+  reviewDate: string;
   rating: number;
   likeCount: number;
 };
 
 const normalize = (text: string) => text.replace(/\s+/g, " ").trim();
+
+function parseReviewDate(text: string, url: string) {
+  const match = normalize(text).match(/^(\d{4})\/(\d{2})\s*訪問(?:\s*\d+回目)?$/);
+
+  if (!match) {
+    throw new Error(`口コミの日付が不正です: ${text} ${url}`);
+  }
+
+  return `${match[1]}-${match[2]}`;
+}
 
 async function openPage(page: Page, url: string, target: string) {
   const response = await page.goto(url, {
@@ -79,6 +90,10 @@ async function scrapeReview(page: Page, link: ReviewLink) {
   const likeText = await optionalText(likeElement);
   const rating = Number(await page.locator(".rvw-item__ratings--val").first().innerText());
   const likeCount = Number(likeText ?? 0);
+  const reviewDate = parseReviewDate(
+    await page.locator(".rvw-item__date").first().innerText(),
+    link.detailUrl,
+  );
 
   if (!Number.isFinite(rating) || !Number.isInteger(likeCount)) {
     throw new Error(`点数またはいいね数が不正です: ${link.detailUrl}`);
@@ -90,6 +105,7 @@ async function scrapeReview(page: Page, link: ReviewLink) {
       url: link.url,
       title: await optionalText(page.locator(".rvw-item__title").first()),
       body: await optionalText(page.locator(".rvw-item__rvw-comment").first()),
+      reviewDate,
       rating,
       likeCount,
     } satisfies Review,
