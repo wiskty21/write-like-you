@@ -145,10 +145,11 @@ npm run deploy
 │   ├── 0001_initial_schema.sql
 │   └── 0002_scraped_reviews.sql
 ├── scripts/
-│   ├── scrape-tabelog.ts
-│   ├── local-browser-provider.ts
-│   └── json-review-repository.ts
+│   └── scrape-tabelog.ts
 ├── src/
+│   ├── local/
+│   │   ├── local-browser-provider.ts
+│   │   └── json-review-repository.ts
 │   ├── scraping/
 │   │   ├── browser-provider.ts
 │   │   ├── review-repository.ts

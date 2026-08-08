@@ -1,5 +1,5 @@
-import { JsonReviewRepository } from "./json-review-repository";
-import { LocalBrowserProvider } from "./local-browser-provider";
+import { JsonReviewRepository } from "../src/local/json-review-repository";
+import { LocalBrowserProvider } from "../src/local/local-browser-provider";
 import { RefreshReviews } from "../src/scraping/refresh-reviews";
 import { TabelogReviewScraper } from "../src/scraping/tabelog-review-scraper";
 
