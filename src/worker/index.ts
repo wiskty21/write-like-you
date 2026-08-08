@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { createRefreshReviews } from "./create-refresh-reviews";
 import { generateReview } from "./generate";
 import { getReviews } from "./reviews";
 
@@ -33,4 +34,11 @@ app.onError((error, context) => {
   return context.json({ error: "生成に失敗しました。時間をおいて再度お試しください。" }, 500);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(_controller, env) {
+    console.log("口コミの定期更新を開始します");
+    const result = await createRefreshReviews(env).execute();
+    console.log("口コミの定期更新が完了しました", result);
+  },
+} satisfies ExportedHandler<CloudflareBindings>;

@@ -3,6 +3,16 @@
   "name": "tabelog-writer",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-07-18",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "browser": {
+    "binding": "BROWSER",
+    "remote": true
+  },
+
+  "triggers": {
+    "crons": ["0 18 * * *"]
+  },
 
   "vars": {
     "AI_TRANSPORT": "binding",
