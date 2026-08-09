@@ -23,7 +23,7 @@ app.get("/api/health", async (context) => {
 });
 
 app.get("/api/reviews", (context) => {
-  return getReviews(context.env.DB);
+  return getReviews(context.env);
 });
 
 app.all("/api/*", (context) => context.json({ error: "APIが見つかりません。" }, 404));

@@ -5,7 +5,7 @@
 - 画面：React、Vite、Tailwind CSS、daisyUI
 - API：TypeScript、Hono、Cloudflare Workers
 - 口コミ収集：Playwright、Cloudflare Browser Run
-- 保存：Cloudflare D1
+- 保存：ローカルJSON、Cloudflare D1
 - 文章生成：Cloudflare Workers AI
 
 ## 口コミの取得項目
@@ -39,27 +39,36 @@ flowchart LR
     R --> D["D1ReviewRepository"]
 ```
 
-| 実行環境 | ブラウザー | 保存先 |
-| --- | --- | --- |
-| ローカルコマンド | ローカルChrome | `data/reviews.json` |
-| Cloudflare Worker | Browser Run | D1 |
+| 実行環境 | ブラウザー | 保存先 | 口コミ一覧の参照先 |
+| --- | --- | --- | --- |
+| ローカル | ローカルChrome | `data/reviews.json` | `data/reviews.json` |
+| 本番 | Browser Run | D1 | D1 |
 
-本番の口コミ一覧APIと文章生成処理はD1を参照します。JSONはローカルスクレイパーの確認・バックアップ用であり、本番Workerへ埋め込みません。
+口コミ一覧APIの参照先は`REVIEW_SOURCE`で切り替えます。文章生成の参考文はこの設定の対象外で、従来どおりD1を参照します。
+
+| `REVIEW_SOURCE` | 口コミ一覧APIの参照先 |
+| --- | --- |
+| `json` | `data/reviews.json`と`data/reviews-meta.json` |
+| `d1` | Cloudflare D1 |
+
+`json`と`d1`以外を指定した場合は、設定ミスとしてエラーになります。
 
 ## セットアップ
 
 ```bash
 npm install
-npx wrangler d1 migrations apply tabelog-writer-db --local
 ```
 
 `.dev.vars`を作成し、Workers AIをローカルから利用するための値を設定します。
 
 ```text
 AI_TRANSPORT="rest"
+REVIEW_SOURCE="json"
 CLOUDFLARE_ACCOUNT_ID="CloudflareのAccount ID"
 CLOUDFLARE_AI_API_TOKEN="Workers AI API Token"
 ```
+
+本番では`wrangler.jsonc`の`REVIEW_SOURCE="d1"`が使用されます。
 
 Browser Runは`wrangler.jsonc`でリモートバインディングとして設定されています。ローカルからBrowser Runを実行した場合もCloudflare側の利用量に加算されます。
 
@@ -80,15 +89,23 @@ data/reviews-meta.json
 
 ## アプリのローカル起動
 
+先に口コミJSONを更新します。
+
+```bash
+npm run scrape
+```
+
+続けてアプリを起動します。
+
 ```bash
 npm run dev
 ```
 
-表示されたURLを開きます。口コミ一覧と文章生成の参考文はローカルD1から読み取ります。
+表示されたURLを開きます。口コミ一覧は`data/reviews.json`から読み取ります。文章生成の参考文は`REVIEW_SOURCE`では切り替わらず、D1から読み取ります。
 
-## Browser Runのローカル検証
+## 本番D1の手動更新
 
-Browser Runを含むScheduled Handlerの検証には、Wranglerの開発サーバーを使用します。
+Cron Triggerを待たずに本番D1を更新する場合は、Wranglerの開発サーバーを使用します。
 
 ```bash
 npm run dev:worker
@@ -100,7 +117,7 @@ npm run dev:worker
 curl "http://localhost:8787/cdn-cgi/handler/scheduled"
 ```
 
-`npm run dev`で起動するVite開発サーバーは、通常の画面・API開発に使用します。リモートのBrowser Runを伴うCron検証には使用しません。
+起動時のバインディング一覧で`env.DB`が`remote`になっていることを確認してください。`local`の場合は本番D1に反映されません。
 
 この処理は次の順序で動作します。
 
