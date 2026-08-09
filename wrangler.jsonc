@@ -31,6 +31,7 @@
       "binding": "DB",
       "database_name": "tabelog-writer-db",
       "database_id": "5bec6697-6295-4fbc-98db-96520b2cb88d",
+      "remote": true,
       "migrations_dir": "./migrations"
     }
   ],
