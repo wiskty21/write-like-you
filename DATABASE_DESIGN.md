@@ -7,8 +7,8 @@
 | 対象システム | Tabelog Writer |
 | データベース | Cloudflare D1 |
 | SQL互換性 | SQLite |
-| 対象マイグレーション | `migrations/0001_initial_schema.sql` |
-| 作成日 | 2026-07-18 |
+| 対象マイグレーション | `migrations/0001_initial_schema.sql`、`migrations/0002_scraped_reviews.sql` |
+| 作成日 | 2026-08-08 |
 
 この文書は、現在のマイグレーションSQLを正本としてデータ構造を説明する。
 
@@ -16,11 +16,13 @@
 
 本人の過去の口コミから文体を抽出し、その文体を使って生成した下書きを、本人の確認後に新しい文体サンプルとして蓄積する。
 
-保存対象は次の3種類である。
+保存対象は次の5種類である。
 
 1. 本人が書いた文章
 2. 過去文から抽出した文体プロフィール
 3. AIが生成した下書きと本人が修正した完成稿
+4. 食べログから取得した口コミ
+5. 口コミの最終取得日時
 
 ## 3. テーブル構成
 
@@ -29,6 +31,43 @@
 | `writing_samples` | 過去の原文と承認済み完成稿を保存する | `id` |
 | `style_profiles` | 媒体ごとの文体プロフィールを保存する | `platform` |
 | `drafts` | AI生成文、修正文、検査結果、状態を保存する | `id` |
+| `scraped_reviews` | 食べログから取得した現在の口コミを保存する | `id` |
+| `review_scrape_metadata` | 口コミの最終取得日時を1件保存する | `id` |
+
+### 3.1 スクレイピングデータの流れ
+
+```mermaid
+flowchart LR
+    C["Cloudflare Cron"] --> B["Browser Run"]
+    B --> S["共通スクレイパー"]
+    S --> R["scraped_reviews"]
+    S --> M["review_scrape_metadata"]
+    R --> A["口コミ一覧API・文章生成"]
+```
+
+`scraped_reviews`と`review_scrape_metadata`は、D1のバッチトランザクションで同時に入れ替える。途中のSQLが失敗した場合は全体をロールバックし、更新前の口コミを維持する。
+
+### 3.2 `scraped_reviews`
+
+| カラム | 型 | NULL | 制約 | 内容 |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | 不可 | PRIMARY KEY | 口コミ詳細URL由来のID |
+| `restaurant_name` | TEXT | 不可 | なし | 店舗名 |
+| `restaurant_url` | TEXT | 不可 | なし | 店舗ページURL |
+| `detail_url` | TEXT | 不可 | UNIQUE | 口コミ詳細URL |
+| `title` | TEXT | 可 | なし | 口コミタイトル |
+| `body` | TEXT | 可 | なし | 口コミ本文 |
+| `review_date` | TEXT | 不可 | `YYYY-MM` | 訪問年月 |
+| `rating` | REAL | 不可 | 0以上5以下 | 評価値 |
+| `like_count` | INTEGER | 不可 | 0以上 | いいね数 |
+| `scraped_at` | TEXT | 不可 | なし | 取得日時 |
+
+### 3.3 `review_scrape_metadata`
+
+| カラム | 型 | NULL | 制約 | 内容 |
+| --- | --- | --- | --- | --- |
+| `id` | INTEGER | 不可 | PRIMARY KEY、1固定 | メタデータ行のID |
+| `last_updated_at` | TEXT | 不可 | なし | 最終取得日時 |
 
 ## 4. 論理的なデータの流れ
 

@@ -1,3 +1,4 @@
 AI_TRANSPORT="rest"
+REVIEW_SOURCE="json"
 CLOUDFLARE_ACCOUNT_ID="52ae66e464b0ab9acb6cb0ff72768ff8"
 CLOUDFLARE_AI_API_TOKEN="paste-your-workers-ai-api-token"

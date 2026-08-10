@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import { createRefreshReviews } from "./create-refresh-reviews";
 import { generateReview } from "./generate";
+import { getReviewSource } from "./review-source";
 import { getReviews } from "./reviews";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
@@ -14,15 +16,13 @@ app.all("/api/generate", (context) => {
 });
 
 app.get("/api/health", async (context) => {
-  const result = await context.env.DB
-    .prepare("SELECT COUNT(*) AS count FROM writing_samples")
-    .first<{ count: number }>();
+  const styleSamples = await getReviewSource(context.env).getStyleSamples();
 
-  return context.json({ status: "ok", writingSamples: result?.count });
+  return context.json({ status: "ok", writingSamples: styleSamples.length });
 });
 
-app.get("/api/reviews", () => {
-  return getReviews();
+app.get("/api/reviews", (context) => {
+  return getReviews(context.env);
 });
 
 app.all("/api/*", (context) => context.json({ error: "APIが見つかりません。" }, 404));
@@ -33,4 +33,11 @@ app.onError((error, context) => {
   return context.json({ error: "生成に失敗しました。時間をおいて再度お試しください。" }, 500);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(_controller, env) {
+    console.log("口コミの定期更新を開始します");
+    const result = await createRefreshReviews(env).execute();
+    console.log("口コミの定期更新が完了しました", result);
+  },
+} satisfies ExportedHandler<CloudflareBindings>;

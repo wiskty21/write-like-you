@@ -1,66 +1,57 @@
-# Tabelog Review Scraper
+# Tabelog Writer
 
-指定した食べログユーザーの口コミを、一覧ページから自動取得してJSONへ保存するスクリプトです。
+本人が食べログへ投稿した口コミを収集し、過去の文体を参考に新しい口コミの下書きを生成する個人用アプリです。
 
-現在の取得対象：
+- 画面：React、Vite、Tailwind CSS、daisyUI
+- API：TypeScript、Hono、Cloudflare Workers
+- 口コミ収集：Playwright、Cloudflare Browser Run
+- 保存：ローカルJSON、Cloudflare D1
+- 文章生成：Cloudflare Workers AI
 
-```text
-https://tabelog.com/rvwr/wi2kty/reviewed_restaurants/list
-```
-
-## 取得できる情報
+## 口コミの取得項目
 
 | 項目 | 型 | 内容 |
 | --- | --- | --- |
+| `id` | `string` | 口コミ詳細URL由来のID |
 | `name` | `string` | 店舗名 |
-| `url` | `string` | 店舗ページのURL |
-| `title` | `string \| null` | 口コミタイトル。未入力の場合は `null` |
-| `body` | `string \| null` | 省略されていない口コミ本文。未入力の場合は `null` |
+| `url` | `string` | 店舗ページURL |
+| `detailUrl` | `string` | 口コミ詳細URL |
+| `title` | `string \| null` | 口コミタイトル |
+| `body` | `string \| null` | 省略されていない口コミ本文 |
+| `reviewDate` | `string` | 訪問年月。`YYYY-MM`形式 |
 | `rating` | `number` | 投稿者が付けた点数 |
 | `likeCount` | `number` | 口コミへのいいね数 |
 
-出力例：
+食べログが公開している日付は訪問年月までのため、存在しない日を補完しません。
 
-```json
-[
-  {
-    "name": "宝珍樓 向河原店",
-    "url": "https://tabelog.com/kanagawa/A1405/A140504/14007628/",
-    "title": "非常にほうちんでした",
-    "body": "口コミ本文",
-    "rating": 4.7,
-    "likeCount": 5
-  }
-]
-```
+## スクレイピング構成
 
-## 処理の仕組み
+食べログの巡回・抽出処理は、ローカルとCloudflareで共通です。ブラウザーの起動方法と保存先だけをコンストラクタインジェクションで切り替えます。
 
 ```mermaid
-flowchart TD
-    A["npm run scrape"] --> B["通常Chromeを起動"]
-    B --> C["口コミ一覧ページを開く"]
-    C --> D["店舗名・店舗URL・口コミ詳細URLを収集"]
-    D --> E{"次のページがある？"}
-    E -- "ある" --> F["1秒待機"]
-    F --> C
-    E -- "ない" --> G["口コミ詳細ページを1件ずつ開く"]
-    G --> H["タイトル・本文・点数・いいね数を抽出"]
-    H --> I{"未処理の口コミがある？"}
-    I -- "ある" --> J["1秒待機"]
-    J --> G
-    I -- "ない" --> K["data/reviews.jsonへ保存"]
+flowchart LR
+    L["ローカルコマンド"] --> LB["LocalBrowserProvider"]
+    C["手動実行"] --> CB["CloudflareBrowserProvider"]
+    LB --> S["TabelogReviewScraper"]
+    CB --> S
+    S --> R["RefreshReviews"]
+    R --> J["JsonReviewRepository"]
+    R --> D["D1ReviewRepository"]
 ```
 
-一覧ページの本文は途中で省略されるため、各口コミの詳細ページを開いて全文を取得します。詳細URLをキーに重複を除去し、「次の20件」がなくなるまで一覧を巡回します。
+| 実行環境 | ブラウザー | 保存先 | 口コミ一覧の参照先 |
+| --- | --- | --- | --- |
+| ローカル | ローカルChrome | `data/reviews.json` | `data/reviews.json` |
+| 本番 | Browser Run | D1 | D1 |
 
-## 必要な環境
+口コミ一覧APIと文章生成の参考文は、`REVIEW_SOURCE`で参照先を切り替えます。
 
-- Node.js
-- Google Chrome
-- npm
+| `REVIEW_SOURCE` | 口コミ一覧・文章生成の参考文の参照先 |
+| --- | --- |
+| `json` | `data/reviews.json`と`data/reviews-meta.json` |
+| `d1` | Cloudflare D1 |
 
-対象サイトは画面なしのブラウザへ403を返すため、処理中は通常のChromeが一時的に開きます。
+`json`と`d1`以外を指定した場合は、設定ミスとしてエラーになります。
 
 ## セットアップ
 
@@ -68,131 +59,129 @@ flowchart TD
 npm install
 ```
 
-## 実行
+`.dev.vars`を作成し、Workers AIをローカルから利用するための値を設定します。
+
+```text
+AI_TRANSPORT="rest"
+REVIEW_SOURCE="json"
+CLOUDFLARE_ACCOUNT_ID="CloudflareのAccount ID"
+CLOUDFLARE_AI_API_TOKEN="Workers AI API Token"
+```
+
+本番では`wrangler.jsonc`の`REVIEW_SOURCE="d1"`が使用されます。
+
+Browser Runは`wrangler.jsonc`でリモートバインディングとして設定されています。ローカルからBrowser Runを実行した場合もCloudflare側の利用量に加算されます。
+
+## ローカルChromeで口コミを取得
 
 ```bash
 npm run scrape
 ```
 
-成功すると、取得件数が表示されます。
+通常のChromeを起動して口コミを取得し、次のファイルへ保存します。
 
 ```text
-21件を data/reviews.json に保存しました。
+data/reviews.json
+data/reviews-meta.json
 ```
 
-出力先：[`data/reviews.json`](data/reviews.json)
+このコマンドはD1や本番環境を更新しません。
 
-## 口コミ生成アプリのローカル起動
+## アプリのローカル起動
 
-画面はReact + Vite + Tailwind CSS + daisyUI、APIはHono、実行基盤はCloudflare Workersで構成しています。
+先に口コミJSONを更新します。
 
-ローカルではWorkers AI REST API、本番ではWorkers AI Bindingを使用します。失敗時に別経路へ自動で切り替えることはありません。
-
-### 1. Workers AI API Tokenを作成
-
-1. Cloudflareダッシュボードで「Workers AI」を開く
-2. 「Use REST API」を選ぶ
-3. 「Create a Workers AI API Token」を選ぶ
-4. 作成されたトークンをコピーする
-
-独自にトークンを作る場合は、`Workers AI - Read` と `Workers AI - Edit` の権限が必要です。
-
-### 2. ローカル設定
-
-`.dev.vars` の `CLOUDFLARE_AI_API_TOKEN` に、コピーしたトークンを設定します。このファイルはGitの追跡対象外です。
-
-```text
-AI_TRANSPORT="rest"
-CLOUDFLARE_ACCOUNT_ID="52ae66e464b0ab9acb6cb0ff72768ff8"
-CLOUDFLARE_AI_API_TOKEN="ここにトークンを貼る"
+```bash
+npm run scrape
 ```
 
-設定例は [`.dev.vars.example`](.dev.vars.example) にあります。
-
-### 3. 起動
+続けてアプリを起動します。
 
 ```bash
 npm run dev
 ```
 
-表示されたローカルURLを開き、口コミ入力フォームから生成します。Workers AIはローカル実行でもCloudflare上で推論され、利用量に加算されます。
+表示されたURLを開きます。口コミ一覧と文章生成の参考文は`data/reviews.json`から読み取るため、ローカルD1は使用しません。
 
-本番は `wrangler.jsonc` の `AI_TRANSPORT="binding"` を使用するため、API Tokenをデプロイする必要はありません。
+## 本番D1の手動更新
 
-### 4. ビルドとデプロイ
+本番D1を更新する場合は、Wranglerの開発サーバーを使用して手動で実行します。
 
 ```bash
+npm run dev:worker
+```
+
+別のターミナルからScheduled Handlerを呼び出します。
+
+```bash
+curl "http://localhost:8787/cdn-cgi/handler/scheduled"
+```
+
+起動時のバインディング一覧で`env.DB`が`remote`になっていることを確認してください。`local`の場合は本番D1に反映されません。
+
+この処理は次の順序で動作します。
+
+1. Browser Runでブラウザーを起動する
+2. 食べログの一覧と詳細ページを巡回する
+3. 取得結果をD1のトランザクションで全件入れ替える
+4. 最終更新日時を保存する
+
+処理途中で失敗した場合、D1の既存口コミは置き換わりません。
+
+## ビルドとデプロイ
+
+初回またはマイグレーション追加時は、Workerより先にリモートD1へ適用します。
+
+```bash
+npx wrangler d1 migrations apply tabelog-writer-db --remote
 npm run build
 npm run deploy
 ```
 
-`npm run build`はWrangler生成型、React、Vite設定、Workerを型チェックしてから本番成果物を作成します。`npm run deploy`はビルド成功後の成果物をCloudflare Workersへデプロイします。
+デプロイ後も口コミは自動取得されません。リモートD1を更新する場合は、前述の手動更新を実行します。
 
-## 入出力のルール
-
-### 入力
-
-- 取得開始URLは `scripts/scrape-tabelog.ts` の `START_URL`
-- 一覧の全ページを対象にする
-- 各ページへのアクセス間隔は1秒
-
-### 出力
-
-- JSON配列として保存する
-- 本文は一覧の省略文ではなく、詳細ページの全文を使用する
-- タイトル・本文が存在しない場合は `null`
-- いいね表示が存在しない投稿は `0`
-- 点数といいね数は文字列ではなく数値
-
-## エラーになる条件
-
-- ページ取得時のHTTPステータスが正常でない
-- 一覧から店舗情報を取得できない
-- 点数またはいいね数を数値へ変換できない
-- 全投稿でいいね要素が見つからない
-
-最後の条件は、食べログ側のHTML構造変更を0件として見逃さないための検証です。処理途中で失敗した場合、JSONは上書きされません。
-
-## ファイル構成
+## 主なファイル
 
 ```text
 .
-├── data/
-│   └── reviews.json          # 取得結果
-├── src/
-│   ├── react-app/            # Reactの入力・生成画面
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   └── styles.css
-│   └── worker/               # Hono APIとWorkers AI処理
-│       ├── index.ts
-│       ├── generate.ts
-│       └── ai.ts
+├── migrations/
+│   ├── 0001_initial_schema.sql
+│   └── 0002_scraped_reviews.sql
 ├── scripts/
-│   └── scrape-tabelog.ts    # 取得処理
-├── index.html                # ViteのHTMLエントリ
-├── vite.config.ts            # Vite・Cloudflare連携設定
-├── wrangler.jsonc            # Worker・D1・AI設定
-├── package.json             # npmスクリプトと依存関係
-└── README.md
+│   └── scrape-tabelog.ts
+├── src/
+│   ├── local/
+│   │   ├── local-browser-provider.ts
+│   │   └── json-review-repository.ts
+│   ├── scraping/
+│   │   ├── browser-provider.ts
+│   │   ├── review-repository.ts
+│   │   ├── tabelog-review-scraper.ts
+│   │   └── refresh-reviews.ts
+│   ├── react-app/
+│   └── worker/
+│       ├── cloudflare-browser-provider.ts
+│       ├── d1-review-repository.ts
+│       ├── create-refresh-reviews.ts
+│       └── index.ts
+├── wrangler.jsonc
+└── package.json
 ```
 
-## 実装の責務
+## エラーとして停止する条件
 
-```mermaid
-flowchart LR
-    M["main<br/>処理全体の制御"] --> L["collectReviewLinks<br/>一覧巡回・URL収集"]
-    M --> R["scrapeReview<br/>口コミ詳細の抽出"]
-    L --> O["openPage<br/>ページ取得・HTTP検証"]
-    R --> O
-    R --> T["optionalText<br/>任意テキストの取得"]
-    M --> W["writeFile<br/>JSON保存"]
-```
+- ページ取得時のHTTPステータスが正常でない
+- 一覧から口コミ情報を取得できない
+- 訪問年月が`YYYY/MM 訪問`形式ではない
+- 点数またはいいね数を数値へ変換できない
+- 全投稿でいいね要素が見つからない
+- D1への一括保存が失敗する
 
-主な実装は [`scripts/scrape-tabelog.ts`](scripts/scrape-tabelog.ts) にあります。小規模なスクリプトとして過剰にファイル分割せず、変更理由ごとに関数を分けています。
+食べログ側のHTML構造変更を空データとして保存せず、既存データを維持するための条件です。
 
 ## 注意事項
 
 - 食べログ側のHTML構造が変わると、CSSセレクターの修正が必要です。
-- 実行頻度や取得データの利用方法について、対象サイトの利用条件を確認してください。
-- Chromeを閉じたり操作したりすると、実行が失敗する場合があります。
+- Browser RunからのアクセスはBotとして識別されます。対象サイトの判断により取得できなくなる可能性があります。
+- 実行頻度、取得データの範囲、利用方法について対象サイトの利用条件を確認してください。
+- Browser RunとWorkers AIの利用量はCloudflareダッシュボードで確認してください。

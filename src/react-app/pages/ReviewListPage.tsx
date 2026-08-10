@@ -4,6 +4,7 @@ import { Link } from "react-router";
 type SortType = "reviewDate" | "rating";
 
 type Review = {
+  id: string;
   name: string;
   url: string;
   title: string | null;
@@ -112,7 +113,7 @@ export function ReviewListPage() {
 
         <ul className="space-y-4">
           {sortedReviews.map((review) => (
-            <li key={review.url}>
+            <li key={review.id}>
               <article className="card bg-base-100 shadow-sm">
                 <div className="card-body">
                   <div className="flex items-start justify-between gap-4">

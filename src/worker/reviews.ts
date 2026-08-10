@@ -1,11 +1,5 @@
-// src/worker/reviews.ts
+import { getReviewSource } from "./review-source";
 
-import reviews from "../../data/reviews.json";
-import reviewsMeta from "../../data/reviews-meta.json";
-
-export function getReviews() {
-  return Response.json({
-    reviews,
-    lastUpdatedAt: reviewsMeta.lastUpdatedAt,
-  });
+export async function getReviews(env: CloudflareBindings) {
+  return Response.json(await getReviewSource(env).getAll());
 }

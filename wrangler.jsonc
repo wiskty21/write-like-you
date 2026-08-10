@@ -3,9 +3,16 @@
   "name": "tabelog-writer",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-07-18",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "browser": {
+    "binding": "BROWSER",
+    "remote": true
+  },
 
   "vars": {
     "AI_TRANSPORT": "binding",
+    "REVIEW_SOURCE": "d1",
     "CLOUDFLARE_ACCOUNT_ID": "52ae66e464b0ab9acb6cb0ff72768ff8",
     "CLOUDFLARE_AI_API_TOKEN": ""
   },
@@ -21,6 +28,7 @@
       "binding": "DB",
       "database_name": "tabelog-writer-db",
       "database_id": "5bec6697-6295-4fbc-98db-96520b2cb88d",
+      "remote": true,
       "migrations_dir": "./migrations"
     }
   ],
