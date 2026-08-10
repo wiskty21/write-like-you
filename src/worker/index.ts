@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { createRefreshReviews } from "./create-refresh-reviews";
 import { generateReview } from "./generate";
+import { getReviewSource } from "./review-source";
 import { getReviews } from "./reviews";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
@@ -15,11 +16,9 @@ app.all("/api/generate", (context) => {
 });
 
 app.get("/api/health", async (context) => {
-  const result = await context.env.DB
-    .prepare("SELECT COUNT(*) AS count FROM writing_samples")
-    .first<{ count: number }>();
+  const styleSamples = await getReviewSource(context.env).getStyleSamples();
 
-  return context.json({ status: "ok", writingSamples: result?.count });
+  return context.json({ status: "ok", writingSamples: styleSamples.length });
 });
 
 app.get("/api/reviews", (context) => {

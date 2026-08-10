@@ -44,9 +44,9 @@ flowchart LR
 | ローカル | ローカルChrome | `data/reviews.json` | `data/reviews.json` |
 | 本番 | Browser Run | D1 | D1 |
 
-口コミ一覧APIの参照先は`REVIEW_SOURCE`で切り替えます。文章生成の参考文はこの設定の対象外で、従来どおりD1を参照します。
+口コミ一覧APIと文章生成の参考文は、`REVIEW_SOURCE`で参照先を切り替えます。
 
-| `REVIEW_SOURCE` | 口コミ一覧APIの参照先 |
+| `REVIEW_SOURCE` | 口コミ一覧・文章生成の参考文の参照先 |
 | --- | --- |
 | `json` | `data/reviews.json`と`data/reviews-meta.json` |
 | `d1` | Cloudflare D1 |
@@ -101,7 +101,7 @@ npm run scrape
 npm run dev
 ```
 
-表示されたURLを開きます。口コミ一覧は`data/reviews.json`から読み取ります。文章生成の参考文は`REVIEW_SOURCE`では切り替わらず、D1から読み取ります。
+表示されたURLを開きます。口コミ一覧と文章生成の参考文は`data/reviews.json`から読み取るため、ローカルD1は使用しません。
 
 ## 本番D1の手動更新
 

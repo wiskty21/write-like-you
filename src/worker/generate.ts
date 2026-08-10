@@ -1,5 +1,5 @@
 import { runReviewModel, type ReviewModelInput } from "./ai";
-import { D1ReviewRepository } from "./d1-review-repository";
+import { getReviewSource } from "./review-source";
 
 type GenerateInput = {
   restaurantName: string;
@@ -88,7 +88,7 @@ export async function generateReview(request: Request, env: CloudflareBindings) 
     return Response.json({ error: message }, { status: 400 });
   }
 
-  const styleSamples = await new D1ReviewRepository(env.DB).getStyleSamples();
+  const styleSamples = await getReviewSource(env).getStyleSamples();
   const generated = parseGeneratedReview(
     await runReviewModel(env, buildModelInput(input, styleSamples)),
   );
