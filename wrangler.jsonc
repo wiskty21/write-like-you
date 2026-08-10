@@ -10,10 +10,6 @@
     "remote": true
   },
 
-  "triggers": {
-    "crons": ["0 18 * * *"]
-  },
-
   "vars": {
     "AI_TRANSPORT": "binding",
     "REVIEW_SOURCE": "d1",

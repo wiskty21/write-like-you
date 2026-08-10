@@ -31,7 +31,7 @@
 ```mermaid
 flowchart LR
     L["ローカルコマンド"] --> LB["LocalBrowserProvider"]
-    C["Cloudflare Cron"] --> CB["CloudflareBrowserProvider"]
+    C["手動実行"] --> CB["CloudflareBrowserProvider"]
     LB --> S["TabelogReviewScraper"]
     CB --> S
     S --> R["RefreshReviews"]
@@ -105,7 +105,7 @@ npm run dev
 
 ## 本番D1の手動更新
 
-Cron Triggerを待たずに本番D1を更新する場合は、Wranglerの開発サーバーを使用します。
+本番D1を更新する場合は、Wranglerの開発サーバーを使用して手動で実行します。
 
 ```bash
 npm run dev:worker
@@ -128,20 +128,6 @@ curl "http://localhost:8787/cdn-cgi/handler/scheduled"
 
 処理途中で失敗した場合、D1の既存口コミは置き換わりません。
 
-## 定期実行
-
-Cron Triggerは毎日03:00（日本時間）に実行します。
-
-```json
-{
-  "triggers": {
-    "crons": ["0 18 * * *"]
-  }
-}
-```
-
-CloudflareのCron式はUTC基準なので、18:00 UTCが翌日03:00 JSTに当たります。
-
 ## ビルドとデプロイ
 
 初回またはマイグレーション追加時は、Workerより先にリモートD1へ適用します。
@@ -152,7 +138,7 @@ npm run build
 npm run deploy
 ```
 
-デプロイ後はCron TriggerがBrowser Runを起動し、取得した口コミをリモートD1へ保存します。
+デプロイ後も口コミは自動取得されません。リモートD1を更新する場合は、前述の手動更新を実行します。
 
 ## 主なファイル
 
